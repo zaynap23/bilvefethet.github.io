@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Türkiye Bölgeler Yarışması</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin:0; padding:20px; }
+        .container { max-width:1200px; margin:0 auto; }
+        .teams { display:flex; gap:12px; margin-bottom:16px; }
+        .team { padding:10px; border-radius:6px; color:#fff; flex:1; text-align:center; }
+        .team1 { background:#ff6b6b; } .team2 { background:#4ecdc4; } .team3 { background:#45b7d1; } .team4 { background:#96ceb4; }
+        .categories { display:flex; gap:10px; margin-bottom:16px; }
+        .category { padding:8px 14px; background:#f0f0f0; cursor:pointer; border-radius:6px; user-select:none; }
+        .map-container { border:2px solid #ccc; padding:12px; margin-bottom:16px; display:flex; justify-content:center; }
+        svg { width:100%; max-width:900px; height:auto; }
+        .question-panel { background:#f9f9f9; padding:16px; border-radius:8px; }
+        .options { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+        .option { padding:10px; background:#fff; border:1px solid #ddd; cursor:pointer; border-radius:6px; transition:transform .15s; user-select:none; }
+        .option:hover { transform:scale(1.03); }
+        .correct { animation: correctAnim .9s; }
+        .wrong { animation: wrongAnim .9s; }
+        @keyframes correctAnim { 0%{background:#fff}50%{background:#c8ffc8}100%{background:#fff} }
+        @keyframes wrongAnim { 0%{background:#fff}50%{background:#ffcccc}100%{background:#fff} }
+        .controls { margin-top:12px; display:flex; gap:8px; }
+        button { padding:8px 12px; border-radius:6px; cursor:pointer; }
+        .small { font-size:0.9rem; }
+        .region { stroke:#333; stroke-width:1; cursor:pointer; }
+        .legend { display:flex; gap:8px; margin-top:8px; }
+        .legend .item { display:flex; gap:6px; align-items:center; }
+        .colorbox { width:18px; height:18px; border-radius:3px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Türkiye Bölgeler Yarışması (Ortaokul)</h1>
+
+    <div class="teams">
+        <div class="team team1">Takım 1: <b><span id="team1-score">0</span></b></div>
+        <div class="team team2">Takım 2: <b><span id="team2-score">0</span></b></div>
+        <div class="team team3">Takım 3: <b><span id="team3-score">0</span></b></div>
+        <div class="team team4">Takım 4: <b><span id="team4-score">0</span></b></div>
+    </div>
+
+    <div class="categories">
+        <div class="category" onclick="selectCategory('matematik')">Temel Matematik</div>
+        <div class="category" onclick="selectCategory('cografya')">Coğrafya</div>
+        <div class="category" onclick="selectCategory('tarih')">Tarih</div>
+        <button onclick="resetGame()">Oyunu Sıfırla</button>
+    </div>
+
+    <div class="map-container">
+        <!-- Basit demo SVG. Her region için id=region1..region14. Gerçek harita path'leriyle değiştirebilirsiniz. -->
+        <svg viewBox="0 0 1000 500" id="turkey-svg" aria-label="Türkiye 14 bölge örnek haritası">
+            <!-- 14 demo bölge olarak 14 dikdörtgen / path (kolay test için) -->
+            <g id="regions">
+                <!-- satır 1 -->
+                <rect id="region1" class="region" x="20" y="20" width="140" height="90" fill="#eee"></rect>
+                <rect id="region2" class="region" x="170" y="20" width="140" height="90" fill="#eee"></rect>
+                <rect id="region3" class="region" x="320" y="20" width="140" height="90" fill="#eee"></rect>
+                <rect id="region4" class="region" x="470" y="20" width="140" height="90" fill="#eee"></rect>
+                <!-- satır 2 -->
+                <rect id="region5" class="region" x="20" y="130" width="140" height="90" fill="#eee"></rect>
+                <rect id="region6" class="region" x="170" y="130" width="140" height="90" fill="#eee"></rect>
+                <rect id="region7" class="region" x="320" y="130" width="140" height="90" fill="#eee"></rect>
+                <rect id="region8" class="region" x="470" y="130" width="140" height="90" fill="#eee"></rect>
+                <!-- satır 3 -->
+                <rect id="region9"  class="region" x="20" y="240" width="140" height="90" fill="#eee"></rect>
+                <rect id="region10" class="region" x="170" y="240" width="140" height="90" fill="#eee"></rect>
+                <rect id="region11" class="region" x="320" y="240" width="140" height="90" fill="#eee"></rect>
+                <rect id="region12" class="region" x="470" y="240" width="140" height="90" fill="#eee"></rect>
+                <!-- satır 4 -->
+                <rect id="region13" class="region" x="620" y="80" width="140" height="90" fill="#eee"></rect>
+                <rect id="region14" class="region" x="620" y="200" width="140" height="90" fill="#eee"></rect>
+            </g>
+        </svg>
+    </div>
+
+    <div class="question-panel">
+        <h3 id="question">Kategori seçiniz...</h3>
+        <div class="options">
+            <div class="option" onclick="checkAnswer('A')" id="optionA">A)</div>
+            <div class="option" onclick="checkAnswer('B')" id="optionB">B)</div>
+            <div class="option" onclick="checkAnswer('C')" id="optionC">C)</div>
+            <div class="option" onclick="checkAnswer('D')" id="optionD">D)</div>
+        </div>
+        <div class="controls small">
+            <div>Aktif takım: <b id="active-team-label">1</b></div>
+            <div style="flex:1"></div>
+            <div class="legend">
+                <div class="item"><div class="colorbox" style="background:#ff6b6b"></div>Takım1</div>
+                <div class="item"><div class="colorbox" style="background:#4ecdc4"></div>Takım2</div>
+                <div class="item"><div class="colorbox" style="background:#45b7d1"></div>Takım3</div>
+                <div class="item"><div class="colorbox" style="background:#96ceb4"></div>Takım4</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/* Soru verisi: her kategori için çoklu soru. Şıklar her seferinde karıştırılarak gösterilir. */
+const questions = {
+    matematik: [
+        { q:"12 × 8 = ?", opts:["86","96","106","116"], correct:"96" },
+        { q:"25'in karekökü kaçtır?", opts:["4","5","6","7"], correct:"5" },
+        { q:"(3 + 5) × 2 = ?", opts:["13","16","10","6"], correct:"16" },
+        { q:"100 ÷ 4 = ?", opts:["24","25","20","40"], correct:"25" }
+    ],
+    cografya: [
+        { q:"Türkiye'nin başkenti neresidir?", opts:["İstanbul","Ankara","İzmir","Bursa"], correct:"Ankara" },
+        { q:"Türkiye'nin en yüksek dağı hangisidir?", opts:["Ağrı Dağı","Erciyes","Uludağ","Palandöken"], correct:"Ağrı Dağı" },
+        { q:"Ege Bölgesi'nde olan şehir hangisidir?", opts:["Antalya","İzmir","Erzurum","Mardin"], correct:"İzmir" },
+        { q:"Marmara Bölgesi'nde bulunan şehir?", opts:["Samsun","Bursa","Diyarbakır","Hatay"], correct:"Bursa" }
+    ],
+    tarih: [
+        { q:"İstanbul'un fethi hangi yılda gerçekleşti?", opts:["1453","1454","1452","1455"], correct:"1453" },
+        { q:"Türkiye Cumhuriyeti hangi yılda kuruldu?", opts:["1920","1922","1923","1924"], correct:"1923" },
+        { q:"Malazgirt Savaşı hangi yılda oldu?", opts:["1071","1073","1081","1091"], correct:"1071" },
+        { q:"Atatürk Türkiye Cumhuriyeti'nin ilk cumhurbaşkanıdır. Doğru mu yanlış mı?", opts:["Doğru","Yanlış","Kararsızım","Bilmiyorum"], correct:"Doğru" }
+    ]
+};
+
+const teamColors = ["#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4"];
+let currentCategory = null;
+let currentQuestion = null; // {q, opts:[], correct}
+let activeTeam = 1;
+let coloredRegions = {}; // regionId -> color
+
+/* Yardımcı: dizi karıştırma */
+function shuffleArray(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+
+/* Seçilen kategoriden rasgele soru seç ve şıkları karıştır */
+function selectCategory(cat){
+    currentCategory = cat;
+    const pool = questions[cat];
+    const item = JSON.parse(JSON.stringify(pool[Math.floor(Math.random()*pool.length)])); // kopya
+    const opts = shuffleArray(item.opts.slice());
+    const correctIndex = opts.indexOf(item.correct);
+    currentQuestion = { q: item.q, opts, correctIndex };
+    displayQuestion();
+}
+
+/* Soru ve şıkları DOM'a yaz */
+function displayQuestion(){
+    document.getElementById('question').textContent = currentQuestion.q;
+    document.getElementById('optionA').textContent = 'A) ' + currentQuestion.opts[0];
+    document.getElementById('optionB').textContent = 'B) ' + currentQuestion.opts[1];
+    document.getElementById('optionC').textContent = 'C) ' + currentQuestion.opts[2];
+    document.getElementById('optionD').textContent = 'D) ' + currentQuestion.opts[3];
+    document.getElementById('active-team-label').textContent = activeTeam;
+}
+
+/* Sesler (sounds klasörüne ekleyin) */
+const sounds = {
+    correct: new Audio('sounds/correct.mp3'),
+    wrong: new Audio('sounds/wrong.mp3'),
+    click: new Audio('sounds/click.mp3')
+};
+function tryPlay(name){ try{ sounds[name].currentTime=0; sounds[name].play(); }catch(e){} }
+
+/* Cevap kontrolü: A/B/C/D -> 0/1/2/3 */
+function checkAnswer(letter){
+    if(!currentQuestion){ alert('Önce kategori seçin ve soru gelmesini bekleyin.'); return; }
+    const map = {A:0,B:1,C:2,D:3};
+    const idx = map[letter];
+    const el = document.getElementById('option'+letter);
+    const isCorrect = idx === currentQuestion.correctIndex;
+    el.classList.add(isCorrect ? 'correct' : 'wrong');
+    setTimeout(()=> el.classList.remove(isCorrect ? 'correct' : 'wrong'),900);
+    if(isCorrect){
+        tryPlay('correct');
+        awardRegionToTeam(activeTeam);
+        incrementScore(activeTeam);
+    } else {
+        tryPlay('wrong');
+        alert('Yanlış cevap. Doğru cevap: ' + currentQuestion.opts[currentQuestion.correctIndex]);
+    }
+    // sonraki takıma geç
+    activeTeam = activeTeam === 4 ? 1 : activeTeam + 1;
+    document.getElementById('active-team-label').textContent = activeTeam;
+    saveGame();
+}
+
+/* Puan güncelleme */
+function incrementScore(team){
+    const el = document.getElementById('team'+team+'-score');
+    el.textContent = (parseInt(el.textContent)||0) + 1;
+}
+
+/* Boşta olan bölge seç ve takım rengini uygula */
+function awardRegionToTeam(team){
+    const regionEls = Array.from(document.querySelectorAll('#regions .region'));
+    const unclaimed = regionEls.filter(r=>!coloredRegions[r.id]);
+    if(unclaimed.length===0){ alert('Haritadaki tüm bölgeler dolu.'); return; }
+    const pick = unclaimed[Math.floor(Math.random()*unclaimed.length)];
+    const color = teamColors[team-1];
+    pick.setAttribute('fill', color);
+    coloredRegions[pick.id] = color;
+}
+
+/* Save / Load */
+function saveGame(){
+    const state = {
+        scores: {
+            t1: document.getElementById('team1-score').textContent,
+            t2: document.getElementById('team2-score').textContent,
+            t3: document.getElementById('team3-score').textContent,
+            t4: document.getElementById('team4-score').textContent
+        },
+        activeTeam,
+        coloredRegions
+    };
+    localStorage.setItem('turkeyQuizState', JSON.stringify(state));
+}
+
+function loadGame(){
+    const raw = localStorage.getItem('turkeyQuizState');
+    if(!raw) return;
+    try{
+        const s = JSON.parse(raw);
+        document.getElementById('team1-score').textContent = s.scores.t1;
+        document.getElementById('team2-score').textContent = s.scores.t2;
+        document.getElementById('team3-score').textContent = s.scores.t3;
+        document.getElementById('team4-score').textContent = s.scores.t4;
+        activeTeam = s.activeTeam || 1;
+        coloredRegions = s.coloredRegions || {};
+        // haritayı renklendir
+        Object.entries(coloredRegions).forEach(([id,color])=>{
+            const el = document.getElementById(id);
+            if(el) el.setAttribute('fill', color);
+        });
+        document.getElementById('active-team-label').textContent = activeTeam;
+    }catch(e){}
+}
+
+/* Tamamen sıfırla */
+function resetGame(){
+    if(!confirm('Oyun sıfırlansın mı?')) return;
+    document.getElementById('team1-score').textContent = '0';
+    document.getElementById('team2-score').textContent = '0';
+    document.getElementById('team3-score').textContent = '0';
+    document.getElementById('team4-score').textContent = '0';
+    activeTeam = 1;
+    coloredRegions = {};
+    document.querySelectorAll('#regions .region').forEach(r=>r.setAttribute('fill','#eee'));
+    localStorage.removeItem('turkeyQuizState');
+    document.getElementById('question').textContent = 'Kategori seçiniz...';
+    document.getElementById('optionA').textContent = 'A)';
+    document.getElementById('optionB').textContent = 'B)';
+    document.getElementById('optionC').textContent = 'C)';
+    document.getElementById('optionD').textContent = 'D)';
+    document.getElementById('active-team-label').textContent = activeTeam;
+}
+
+/* Sayfa yüklendiğinde kaydı geri yükle */
+window.addEventListener('load', ()=>{ loadGame(); });
+
+/* İsteğe bağlı: bölgeleri tıklayınca bilgi veya renk temizleme (geliştirilebilir) */
+document.querySelectorAll('#regions .region').forEach(r=>{
+    r.addEventListener('click', ()=> {
+        const ownerColor = coloredRegions[r.id];
+        if(ownerColor){
+            // bölgeyi sahibinden alıp tekrar boşaltmak isterseniz uncomment:
+            // delete coloredRegions[r.id]; r.setAttribute('fill','#eee'); saveGame();
+            alert(r.id + ' zaten işaretlenmiş.');
+        } else {
+            alert(r.id + ' boş. Doğru cevap verildiğinde rasgele atanır.');
+        }
+    });
+});
+</script>
+</body>
+</html>

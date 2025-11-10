@@ -152,8 +152,8 @@ function displayQuestion(){
 
 /* Sesler (sounds klasörüne ekleyin) */
 const sounds = {
-    correct: new Audio('wrong-answer.mp3'),
-    wrong: new Audio('correct-answer.mp3'),
+    correct: new Audio('sounds/wrong-answer.mp3'),
+    wrong: new Audio('sounds/correct-answer.mp3'),
 };
 function tryPlay(name){ try{ sounds[name].currentTime=0; sounds[name].play(); }catch(e){} }
 
@@ -271,3 +271,4 @@ document.querySelectorAll('#regions .region').forEach(r=>{
 </body>
 
 </html>
+
